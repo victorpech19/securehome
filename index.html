@@ -10,22 +10,25 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <!-- ══════════════════════════════════════
-     FIREBASE CONFIG — omplir quan arribi l'ESP32
-     Substitueix els valors de FIREBASE_CONFIG
-     amb els del teu projecte Firebase
+     FIREBASE CONFIG
+     Substitueix els valors amb els del teu projecte:
+     Firebase Console → Configuració del projecte → Les teves apps → Config
 ══════════════════════════════════════ -->
 <script>
-const FIREBASE_ENABLED = false; // Canvia a true quan tinguis Firebase configurat
+const FIREBASE_ENABLED = true;
 
 const FIREBASE_CONFIG = {
-  apiKey:            "LA_TEVA_API_KEY",
-  authDomain:        "el-teu-projecte.firebaseapp.com",
-  databaseURL:       "https://el-teu-projecte-default-rtdb.firebaseio.com",
-  projectId:         "el-teu-projecte",
-  storageBucket:     "el-teu-projecte.appspot.com",
-  messagingSenderId: "123456789",
-  appId:             "1:123456789:web:abcdef"
+  apiKey:            "AIzaSyC4P1oXmQ_xCXP3JqqXiLiVOf49IrZmyQs",
+  authDomain:        "home-a447a.firebaseapp.com",
+  databaseURL:       "https://home-a447a-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:         "home-a447a",
+  storageBucket:     "home-a447a.firebasestorage.app",
+  messagingSenderId: "710956083643",
+  appId:             "1:710956083643:web:46e54d2be03de20e00fc9e"
 };
+
+// Referència global a la base de dades (s'omple quan Firebase carrega)
+let db = null;
 </script>
 
 <style>
@@ -103,6 +106,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .cam-feed{background:#0A1020;height:190px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:#3A5070;font-size:12px;position:relative}
 .cam-feed img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
 .cam-btn{background:var(--blue);border:none;border-radius:10px;color:white;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;cursor:pointer;transition:all .2s}
+.cam-footer{padding:10px 16px;display:flex;gap:8px;border-top:1px solid var(--border)}
+.foto-req-btn{flex:1;padding:9px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.foto-req-btn:hover{background:var(--blue-pale);border-color:var(--blue);color:var(--blue2)}
+.foto-req-btn.loading{opacity:.6;pointer-events:none}
 
 /* PHOTO */
 .photo-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow);display:none}
@@ -190,7 +197,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .ni.active{color:var(--blue)}
 .ni .icon{font-size:21px}
 .ni .lbl{font-size:10px;font-weight:600}
-@keyframes sk{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 ::-webkit-scrollbar{width:0}
 </style>
 </head>
@@ -215,7 +221,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <div class="topbar">
   <div class="topbar-left">
     <h1>🔐 SecureHome</h1>
-    <p><span class="status-dot" id="sdot"></span><span id="stext">Mode Demo</span></p>
+    <p><span class="status-dot offline" id="sdot"></span><span id="stext">Mode Demo</span></p>
   </div>
   <div class="topbar-right">
     <div class="conn-pill demo" id="cpill">⚡ Demo</div>
@@ -276,6 +282,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <span style="font-size:36px">📷</span>
       <span>Càmera desactivada</span>
     </div>
+    <div class="cam-footer">
+      <button class="foto-req-btn" id="foto-req-btn" onclick="requestPhoto()">
+        📸 Sol·licitar Foto
+      </button>
+    </div>
   </div>
 
   <!-- INTRUSION PHOTO -->
@@ -309,11 +320,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- PAGE SENSORS -->
 <div class="page" id="page-sensors">
   <div class="sec-title" style="margin-top:4px">Sensors Instal·lats</div>
-  <div class="sl"><div class="sl-icon">🌿</div><div class="sl-info"><h3>PIR Jardí</h3><p>Sensor moviment exterior · Pin D8</p></div><span class="sl-status">Actiu</span></div>
-  <div class="sl"><div class="sl-icon">🏢</div><div class="sl-info"><h3>PIR Planta 1</h3><p>Sensor moviment interior · Pin D9</p></div><span class="sl-status">Actiu</span></div>
-  <div class="sl"><div class="sl-icon">🚪</div><div class="sl-info"><h3>IR Porta Principal</h3><p>Sensor infraroig porta · Pin D10</p></div><span class="sl-status">Actiu</span></div>
-  <div class="sl"><div class="sl-icon">☁️</div><div class="sl-info"><h3>Sensor Gas MQ2</h3><p>Detector fum i gas · Pin A0</p></div><span class="sl-status">Actiu</span></div>
-  <div class="sl"><div class="sl-icon">💧</div><div class="sl-info"><h3>DHT11 Humitat/Temp</h3><p>Temperatura i humitat · Pin D11</p></div><span class="sl-status">Actiu</span></div>
+  <div class="sl"><div class="sl-icon">🌿</div><div class="sl-info"><h3>PIR Jardí</h3><p>Sensor moviment exterior · GPIO 39</p></div><span class="sl-status">Actiu</span></div>
+  <div class="sl"><div class="sl-icon">🏢</div><div class="sl-info"><h3>PIR Planta 1</h3><p>Sensor moviment interior · GPIO 40</p></div><span class="sl-status">Actiu</span></div>
+  <div class="sl"><div class="sl-icon">🚪</div><div class="sl-info"><h3>IR Porta Principal</h3><p>Sensor infraroig porta · GPIO 41</p></div><span class="sl-status">Actiu</span></div>
+  <div class="sl"><div class="sl-icon">☁️</div><div class="sl-info"><h3>Sensor Gas MQ-2</h3><p>Detector fum i gas · GPIO 1 (ADC1)</p></div><span class="sl-status">Actiu</span></div>
+  <div class="sl"><div class="sl-icon">💧</div><div class="sl-info"><h3>DHT11 Humitat/Temp</h3><p>Temperatura i humitat · GPIO 42</p></div><span class="sl-status">Actiu</span></div>
   <div class="add-card" onclick="toast('⚙️ Disponible amb ESP32 connectat')"><div class="plus">＋</div><p>Afegir nou sensor</p></div>
 </div>
 
@@ -326,7 +337,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="door-sub">Habitació del pànic · Objectes de valor</div>
     <button class="door-btn door-open" id="door-btn" onclick="toggleDoor()">🔓 Obrir Porta</button>
   </div>
-  <div class="sim-card"><h3>ℹ️ Informació</h3><p>Controlat pel servo connectat al pin D6. En estat d'alarma, la porta es bloqueja automàticament per màxima seguretat.</p></div>
+  <div class="sim-card"><h3>ℹ️ Informació</h3><p>Controlat pel servo connectat al GPIO 8. En estat d'alarma, la porta es bloqueja automàticament per màxima seguretat. Si Firebase està connectat, la comanda s'envia directament a l'ESP32-S3.</p></div>
 </div>
 
 <!-- PAGE SIM -->
@@ -370,7 +381,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <button class="ni" onclick="nav('sim',this)"><span class="icon">⚡</span><span class="lbl">Simulació</span></button>
 </nav>
 
-<!-- FIREBASE SDK (carrega només si activat) -->
+<!-- FIREBASE SDK -->
 <script>
 if (FIREBASE_ENABLED) {
   const s1 = document.createElement('script');
@@ -391,48 +402,67 @@ if (FIREBASE_ENABLED) {
 
 function initFirebase() {
   firebase.initializeApp(FIREBASE_CONFIG);
-  const db = firebase.database();
-  const storage = firebase.storage();
+  db = firebase.database(); // variable global, accessible des de totes les funcions
 
-  // Escolta canvis en temps real de l'ESP32
+  // ── ESCOLTA: dades en temps real de l'ESP32 ──
   db.ref('alarma').on('value', snap => {
     const d = snap.val();
     if (!d) return;
 
-    // Actualitza estat
-    setBadge(d.estat || 0);
+    // Estat del sistema
+    const e = d.estat ?? 0;
+    setBadge(e);
+
+    // Sincronitzar botons de mode (si estat és 0, 1 o 2)
+    if (e <= 2) {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      const mb = document.getElementById('m' + e);
+      if (mb) mb.classList.add('active');
+      S.mode = e;
+    }
+
+    // Pre-alarma
+    if (e === 5 && !S.paInterval) startPreAlarm();
+    if (e !== 5) stopPreAlarm();
+
+    // Sensors IR
     setSensor('irj', d.IRJ === 1);
     setSensor('ir1', d.IR1 === 1);
     setSensor('irp', d.IRP === 1);
 
+    // Gas
     const gv = document.getElementById('v-gas');
-    if (d.G === 1) { gv.style.color='var(--red)'; gv.textContent='ALERTA'; }
-    else { gv.style.color='var(--green)'; gv.textContent='OK'; }
+    if (d.G === 1) { gv.style.color = 'var(--red)'; gv.textContent = 'ALERTA'; document.getElementById('c-gas').style.background = '#FFF8F8'; }
+    else           { gv.style.color = 'var(--green)'; gv.textContent = 'OK'; document.getElementById('c-gas').style.background = ''; }
 
-    document.getElementById('v-temp').textContent = (d.temp || '—') + '°C';
-    document.getElementById('v-hum').textContent = (d.H || '—') + '%';
+    // Temperatura i humitat
+    if (d.temp != null) document.getElementById('v-temp').textContent = d.temp.toFixed(1) + '°C';
+    if (d.H    != null) document.getElementById('v-hum').textContent  = d.H.toFixed(0) + '%';
 
-    // Pre-alarma automàtica
-    if (d.estat === 5 && !S.paInterval) startPreAlarm();
-    if (d.estat !== 5) stopPreAlarm();
-
-    // Indicador connectat
+    // Indicador de connexió
     document.getElementById('sdot').classList.remove('offline');
-    document.getElementById('stext').textContent = 'ESP32 Connectat';
-    document.getElementById('cpill').className = 'conn-pill live';
+    document.getElementById('stext').textContent = 'ESP32-S3 Connectat';
+    document.getElementById('cpill').className   = 'conn-pill live';
     document.getElementById('cpill').textContent = '🟢 Live';
   });
 
-  // Escolta fotos d'intrusió
+  // ── ESCOLTA: fotos d'intrusió ──
   db.ref('alarma/foto_url').on('value', snap => {
     const url = snap.val();
-    if (url) showPhoto(url);
+    if (url && url !== 'sense_camera') showPhoto(url);
   });
 
-  // URL càmera
+  // ── ESCOLTA: URL stream càmera ──
   db.ref('alarma/cam_url').on('value', snap => {
     window._camUrl = snap.val();
   });
+}
+
+// Escriu una comanda a Firebase (web → ESP32)
+function fbWrite(path, value) {
+  if (FIREBASE_ENABLED && db) {
+    db.ref(path).set(value);
+  }
 }
 </script>
 
@@ -517,6 +547,8 @@ function activateMode(m){
   S.mode=m; setBadge(m);
   toast(['✅ Sistema desarmat','🌙 Mode nit activat','🔒 Mode absència activat'][m]);
   stopPreAlarm();
+  // Enviar comanda a l'ESP32 via Firebase
+  fbWrite('/alarma/mode_req', m);
 }
 function reqMode(m){
   if(m===0&&S.mode>=1){ S.pendMode=0; showPwd(); }
@@ -549,6 +581,26 @@ function toggleCam(){
   } else {
     f.innerHTML='<span style="font-size:36px">📷</span><span>Càmera desactivada</span>';
     f.style.background='#0A1020'; b.textContent='Activar'; l.style.display='none'; toast('📷 Càmera desactivada');
+  }
+}
+
+// ── SOL·LICITAR FOTO ──
+function requestPhoto(){
+  const btn = document.getElementById('foto-req-btn');
+  if (FIREBASE_ENABLED && db) {
+    btn.classList.add('loading');
+    btn.textContent = '⏳ Sol·licitant...';
+    fbWrite('/alarma/foto_solicitada', true);
+    // Restaurar botó després de 5s (temps perquè l'ESP32 respongui)
+    setTimeout(() => {
+      btn.classList.remove('loading');
+      btn.innerHTML = '📸 Sol·licitar Foto';
+    }, 5000);
+    toast('📸 Foto sol·licitada a l\'ESP32');
+  } else {
+    // Mode demo: mostrar foto de prova
+    showPhoto('https://placehold.co/400x225/0A1020/5AB4FF?text=Foto+Demo');
+    toast('📸 Foto de demostració');
   }
 }
 
@@ -625,14 +677,25 @@ function resetAll(){
   document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('m0').classList.add('active');
   setBadge(0); toast('✅ Reset complet del sistema');
+  // Reset Firebase si connectat
+  fbWrite('/alarma/mode_req', 0);
 }
 
 // ── DOOR ──
 function toggleDoor(){
   S.doorOpen=!S.doorOpen;
   const i=document.getElementById('door-icon'),t=document.getElementById('door-title'),b=document.getElementById('door-btn');
-  if(S.doorOpen){ i.textContent='🔓'; t.textContent='Porta Oberta'; b.textContent='🔒 Tancar Porta'; b.className='door-btn door-close'; toast('🔓 Porta oberta'); }
-  else { i.textContent='🔐'; t.textContent='Porta Tancada'; b.textContent='🔓 Obrir Porta'; b.className='door-btn door-open'; toast('🔒 Porta tancada'); }
+  if(S.doorOpen){
+    i.textContent='🔓'; t.textContent='Porta Oberta';
+    b.textContent='🔒 Tancar Porta'; b.className='door-btn door-close';
+    toast('🔓 Porta oberta');
+  } else {
+    i.textContent='🔐'; t.textContent='Porta Tancada';
+    b.textContent='🔓 Obrir Porta'; b.className='door-btn door-open';
+    toast('🔒 Porta tancada');
+  }
+  // Enviar comanda al servo de l'ESP32 via Firebase
+  fbWrite('/alarma/porta_req', S.doorOpen ? 1 : 0);
 }
 
 // ── TOAST ──
