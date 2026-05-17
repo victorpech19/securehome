@@ -512,7 +512,8 @@ function setBadge(i){
 // ── MODES ──
 function activateMode(m){
   document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('m'+m).classList.add('active');
+  const btn = document.getElementById('m'+m);
+  if(btn) btn.classList.add('active');
   S.mode=m; setBadge(m);
   toast(['✅ Sistema desarmat','🌙 Mode nit activat','🔒 Mode absència activat'][m]);
   stopPreAlarm();
