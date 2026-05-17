@@ -559,7 +559,7 @@ function reqMode(m){
 function showPwd(){ document.getElementById('pwd').value=''; document.getElementById('pwd-mo').classList.add('show'); setTimeout(()=>document.getElementById('pwd').focus(),300); }
 function closePwd(){ document.getElementById('pwd-mo').classList.remove('show'); S.pendMode=null; }
 function checkPwd(){
-  if(document.getElementById('pwd').value==='casa'){ closePwd(); activateMode(S.pendMode); toast('✅ Accés concedit'); }
+  if(document.getElementById('pwd').value==='casa'){ const m=S.pendMode; closePwd(); activateMode(m); toast('✅ Accés concedit'); }
   else{ const i=document.getElementById('pwd'); i.classList.add('err'); i.value=''; setTimeout(()=>i.classList.remove('err'),400); toast('❌ Contrasenya incorrecta'); }
 }
 document.getElementById('pwd').addEventListener('keydown',e=>{ if(e.key==='Enter') checkPwd(); });
