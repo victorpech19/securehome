@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#1E90FF">
+<title>SecureHome</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- ══════════════════════════════════════
+     FIREBASE CONFIG — omplir quan arribi l'ESP32
+     Substitueix els valors de FIREBASE_CONFIG
+     amb els del teu projecte Firebase
+══════════════════════════════════════ -->
+<script>
+const FIREBASE_ENABLED = false; // Canvia a true quan tinguis Firebase configurat
+
+const FIREBASE_CONFIG = {
+  apiKey:            "LA_TEVA_API_KEY",
+  authDomain:        "el-teu-projecte.firebaseapp.com",
+  databaseURL:       "https://el-teu-projecte-default-rtdb.firebaseio.com",
+  projectId:         "el-teu-projecte",
+  storageBucket:     "el-teu-projecte.appspot.com",
+  messagingSenderId: "123456789",
+  appId:             "1:123456789:web:abcdef"
+};
+</script>
+
+<style>
+:root {
+  --blue:#1E90FF; --blue2:#0070E0; --blue-light:#5AB4FF; --blue-pale:#E8F4FF;
+  --bg:#F4F8FF; --bg2:#FFFFFF; --card:#FFFFFF; --card2:#EFF6FF;
+  --text:#0F1C2E; --text2:#4A6080; --text3:#A0B8D0;
+  --green:#10B981; --red:#EF4444; --yellow:#F59E0B;
+  --shadow:0 2px 12px rgba(30,144,255,.10);
+  --shadow-lg:0 8px 32px rgba(30,144,255,.15);
+  --border:#E2EEFA; --radius:20px; --radius-sm:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;padding-bottom:90px}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:linear-gradient(160deg,#0070E0 0%,#1E90FF 50%,#5AB4FF 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;padding:32px}
+.login-logo{font-size:56px;margin-bottom:16px}
+.login-title{font-size:28px;font-weight:700;color:white;margin-bottom:6px;letter-spacing:-.5px}
+.login-sub{font-size:14px;color:rgba(255,255,255,.7);margin-bottom:40px}
+.login-box{background:white;border-radius:var(--radius);padding:28px 24px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.login-box label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:6px}
+.login-box input{width:100%;padding:13px 16px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;margin-bottom:16px;outline:none;transition:border-color .2s}
+.login-box input:focus{border-color:var(--blue)}
+.login-box input.err{border-color:var(--red);animation:sk .3s}
+.login-submit{width:100%;padding:14px;background:linear-gradient(135deg,var(--blue2),var(--blue));border:none;border-radius:var(--radius-sm);color:white;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(30,144,255,.4);transition:all .2s}
+.login-submit:hover{transform:translateY(-1px)}
+.login-error{font-size:12px;color:var(--red);text-align:center;margin-top:10px;height:18px}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(20px);padding:14px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(30,144,255,.07)}
+.topbar-left h1{font-size:20px;font-weight:700;color:var(--blue2);letter-spacing:-.5px}
+.topbar-left p{font-size:11px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:5px}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pg 2s infinite}
+.status-dot.offline{background:var(--text3);box-shadow:none;animation:none}
+@keyframes pg{0%,100%{box-shadow:0 0 5px var(--green)}50%{box-shadow:0 0 12px var(--green)}}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.conn-pill{font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px}
+.conn-pill.demo{background:rgba(245,158,11,.12);color:var(--yellow);border:1px solid rgba(245,158,11,.25)}
+.conn-pill.live{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.25)}
+.logout-btn{font-size:11px;font-weight:600;padding:5px 12px;border-radius:20px;background:var(--blue-pale);color:var(--blue2);border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
+
+/* PAGES */
+.page{display:none;padding:16px}
+.page.active{display:block}
+
+/* ALARM CARD */
+.alarm-card{background:linear-gradient(135deg,var(--blue2) 0%,var(--blue) 100%);border-radius:var(--radius);padding:22px;margin-bottom:14px;position:relative;overflow:hidden;box-shadow:var(--shadow-lg)}
+.alarm-card::after{content:'';position:absolute;top:-40px;right:-40px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.1);pointer-events:none}
+.alarm-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.alarm-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:30px;font-size:13px;font-weight:700;margin-bottom:18px;background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.3);backdrop-filter:blur(10px);transition:all .4s}
+.alarm-badge.alarma{background:rgba(239,68,68,.3);border-color:rgba(239,68,68,.5);animation:blr 1s infinite}
+@keyframes blr{0%,100%{background:rgba(239,68,68,.3)}50%{background:rgba(239,68,68,.5)}}
+.mode-sel{display:flex;gap:8px;margin-bottom:16px}
+.mode-btn{flex:1;padding:10px 4px;border-radius:var(--radius-sm);border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:rgba(255,255,255,.8);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;text-align:center;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:3px}
+.mode-btn .mi{font-size:18px}
+.mode-btn.active{border-color:white;background:rgba(255,255,255,.25);color:white}
+.emerg-btn{width:100%;padding:12px;background:rgba(239,68,68,.2);border:1.5px solid rgba(239,68,68,.6);border-radius:var(--radius-sm);color:white;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
+.emerg-btn:hover{background:rgba(239,68,68,.35)}
+
+/* PRE-ALARM */
+.prealarm-text{font-size:11px;color:rgba(255,255,255,.85);text-align:center;margin-bottom:6px;display:none}
+.prealarm-bar{display:none;background:rgba(255,255,255,.2);border-radius:10px;overflow:hidden;margin-bottom:14px;height:6px}
+.prealarm-progress{height:100%;background:var(--yellow);width:100%;transition:width 1s linear;border-radius:10px}
+
+/* SECTION */
+.sec-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin:18px 0 10px}
+
+/* CAMERA */
+.cam-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow)}
+.cam-head{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.cam-head span{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--text)}
+.live-badge{font-size:9px;font-weight:700;background:var(--red);color:white;padding:2px 7px;border-radius:4px;animation:bl 2s infinite}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.4}}
+.cam-feed{background:#0A1020;height:190px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:#3A5070;font-size:12px;position:relative}
+.cam-feed img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.cam-btn{background:var(--blue);border:none;border-radius:10px;color:white;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;cursor:pointer;transition:all .2s}
+
+/* PHOTO */
+.photo-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow);display:none}
+.photo-card.show{display:block}
+.photo-head{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:#FFF8F0}
+.photo-head span{font-size:13px;font-weight:600;color:var(--yellow)}
+.photo-time{font-size:11px;color:var(--text2)}
+.photo-feed{background:#0A1020;min-height:190px;display:flex;align-items:center;justify-content:center}
+.photo-feed img{width:100%;border-radius:0}
+
+/* SENSORS */
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sc{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;transition:all .3s;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.sc.ok::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--green);border-radius:3px}
+.sc.al::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--red);border-radius:3px}
+.sc.al{border-color:rgba(239,68,68,.3);background:#FFF8F8}
+.sc-icon{font-size:20px;margin-bottom:6px}
+.sc-name{font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.sc-val{font-size:17px;font-weight:700;font-family:'DM Mono',monospace}
+.sc-val.ok{color:var(--green)}.sc-val.al{color:var(--red)}
+.sc-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.eg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.ec{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 8px;text-align:center;box-shadow:var(--shadow)}
+.ec-icon{font-size:18px;margin-bottom:5px}
+.ec-label{font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.ec-val{font-size:16px;font-weight:700;font-family:'DM Mono',monospace;margin-top:3px;color:var(--text)}
+
+/* DOOR */
+.door-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:30px 24px;text-align:center;margin-bottom:14px;box-shadow:var(--shadow)}
+.door-icon{font-size:60px;margin-bottom:14px;display:block;transition:all .5s}
+.door-title{font-size:19px;font-weight:700;margin-bottom:6px;color:var(--text)}
+.door-sub{font-size:12px;color:var(--text2);margin-bottom:22px}
+.door-btn{width:100%;padding:15px;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .3s}
+.door-open{background:linear-gradient(135deg,#059669,var(--green));color:white;box-shadow:0 4px 14px rgba(16,185,129,.35)}
+.door-close{background:linear-gradient(135deg,var(--blue2),var(--blue));color:white;box-shadow:0 4px 14px rgba(30,144,255,.35)}
+.door-btn:active{transform:scale(.97)}
+
+/* SENSORS PAGE */
+.sl{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:10px;box-shadow:var(--shadow)}
+.sl-icon{font-size:26px}
+.sl-info{flex:1}
+.sl-info h3{font-size:13px;font-weight:600;color:var(--text)}
+.sl-info p{font-size:11px;color:var(--text2);margin-top:1px}
+.sl-status{font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.2)}
+.add-card{background:var(--card);border:2px dashed var(--text3);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:all .2s}
+.add-card:hover{border-color:var(--blue);background:var(--blue-pale)}
+.add-card .plus{font-size:32px;color:var(--text3);margin-bottom:6px}
+.add-card p{color:var(--text2);font-size:12px}
+
+/* SIM */
+.sim-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.sim-card h3{font-size:14px;font-weight:700;margin-bottom:4px;color:var(--text)}
+.sim-card p{font-size:11px;color:var(--text2);margin-bottom:14px}
+.sim-btn{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px}
+.sim-btn:last-child{margin-bottom:0}
+.sim-btn:hover{background:var(--blue-pale);border-color:var(--blue);color:var(--blue2)}
+.sim-btn.d{border-color:rgba(239,68,68,.3);color:var(--red)}
+.sim-btn.d:hover{background:#FFF0F0;border-color:var(--red)}
+.sim-btn.w{border-color:rgba(245,158,11,.3);color:var(--yellow)}
+.sim-btn.w:hover{background:#FFFBF0;border-color:var(--yellow)}
+
+/* MODAL */
+.mo{display:none;position:fixed;inset:0;background:rgba(15,28,46,.5);backdrop-filter:blur(10px);z-index:200;align-items:center;justify-content:center;padding:20px}
+.mo.show{display:flex}
+.md{background:white;border:1px solid var(--border);border-radius:var(--radius);padding:26px 22px;width:100%;max-width:330px;animation:su .3s ease;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+@keyframes su{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.md h2{font-size:17px;font-weight:700;margin-bottom:5px;color:var(--text)}
+.md p{font-size:12px;color:var(--text2);margin-bottom:18px}
+.md input{width:100%;padding:13px 16px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Mono',monospace;font-size:18px;text-align:center;letter-spacing:4px;margin-bottom:14px;outline:none;transition:border-color .2s}
+.md input:focus{border-color:var(--blue)}
+.md input.err{border-color:var(--red);animation:sk .3s}
+@keyframes sk{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.md-btns{display:flex;gap:10px}
+.md-btn{flex:1;padding:12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.md-btn.c{background:var(--bg);color:var(--text2)}
+.md-btn.ok{background:linear-gradient(135deg,var(--blue2),var(--blue));color:white;border-color:var(--blue)}
+
+/* TOAST */
+.toast{position:fixed;top:76px;left:50%;transform:translateX(-50%) translateY(-15px);background:var(--text);color:white;border-radius:30px;padding:9px 18px;font-size:12px;font-weight:500;opacity:0;transition:all .3s;z-index:300;white-space:nowrap;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* NAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;padding:8px 0 20px;z-index:100;box-shadow:0 -4px 20px rgba(30,144,255,.08)}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;cursor:pointer;border:none;background:none;color:var(--text3);font-family:'DM Sans',sans-serif;transition:all .2s}
+.ni.active{color:var(--blue)}
+.ni .icon{font-size:21px}
+.ni .lbl{font-size:10px;font-weight:600}
+@keyframes sk{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+::-webkit-scrollbar{width:0}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-logo">🔐</div>
+  <div class="login-title">SecureHome</div>
+  <div class="login-sub">Sistema de seguretat intel·ligent</div>
+  <div class="login-box">
+    <label>Usuari</label>
+    <input type="text" id="l-user" placeholder="admin" autocomplete="username">
+    <label>Contrasenya</label>
+    <input type="password" id="l-pass" placeholder="••••••" autocomplete="current-password">
+    <button class="login-submit" onclick="doLogin()">Entrar al Sistema</button>
+    <div class="login-error" id="l-err"></div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <h1>🔐 SecureHome</h1>
+    <p><span class="status-dot" id="sdot"></span><span id="stext">Mode Demo</span></p>
+  </div>
+  <div class="topbar-right">
+    <div class="conn-pill demo" id="cpill">⚡ Demo</div>
+    <button class="logout-btn" onclick="doLogout()">Sortir</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- PWD MODAL -->
+<div class="mo" id="pwd-mo">
+  <div class="md">
+    <h2>🔒 Desactivar Protecció</h2>
+    <p>Introdueix la contrasenya del sistema per continuar</p>
+    <input type="password" id="pwd" placeholder="••••" maxlength="30" onkeydown="if(event.key==='Enter')checkPwd()">
+    <div class="md-btns">
+      <button class="md-btn c" onclick="closePwd()">Cancel·lar</button>
+      <button class="md-btn ok" onclick="checkPwd()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- EMERGENCY MODAL -->
+<div class="mo" id="emerg-mo">
+  <div class="md">
+    <h2>🚨 Emergència</h2>
+    <p>Contactar amb els serveis d'emergència (simulació). Confirmes la trucada al 112?</p>
+    <div class="md-btns">
+      <button class="md-btn c" onclick="document.getElementById('emerg-mo').classList.remove('show')">Cancel·lar</button>
+      <button class="md-btn ok" style="background:var(--red);border-color:var(--red)" onclick="doEmerg()">📞 Trucar 112</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE HOME -->
+<div class="page active" id="page-home">
+
+  <div class="alarm-card">
+    <div class="alarm-label">Estat del Sistema</div>
+    <div class="alarm-badge" id="abadge">🟢 &nbsp;SISTEMA DESARMAT</div>
+    <div class="prealarm-text" id="pa-text">⚠️ Pre-alarma — <span id="pa-count">20</span>s fins a alarma crítica</div>
+    <div class="prealarm-bar" id="pa-bar"><div class="prealarm-progress" id="pa-prog"></div></div>
+    <div class="mode-sel">
+      <button class="mode-btn active" id="m0" onclick="reqMode(0)"><span class="mi">🏠</span>Desarmat</button>
+      <button class="mode-btn" id="m1" onclick="reqMode(1)"><span class="mi">🌙</span>Nit</button>
+      <button class="mode-btn" id="m2" onclick="reqMode(2)"><span class="mi">🚪</span>Absència</button>
+    </div>
+    <button class="emerg-btn" onclick="document.getElementById('emerg-mo').classList.add('show')">🚨 Emergència — Trucar 112</button>
+  </div>
+
+  <!-- CAMERA -->
+  <div class="cam-card">
+    <div class="cam-head">
+      <span>📷 Càmera&nbsp;<span class="live-badge" id="live" style="display:none">LIVE</span></span>
+      <button class="cam-btn" id="cambtn" onclick="toggleCam()">Activar</button>
+    </div>
+    <div class="cam-feed" id="camfeed">
+      <span style="font-size:36px">📷</span>
+      <span>Càmera desactivada</span>
+    </div>
+  </div>
+
+  <!-- INTRUSION PHOTO -->
+  <div class="photo-card" id="photo-card">
+    <div class="photo-head">
+      <span>📸 Foto d'Intrusió Detectada</span>
+      <span class="photo-time" id="photo-time"></span>
+    </div>
+    <div class="photo-feed">
+      <img id="photo-img" src="" alt="Foto intrusió">
+    </div>
+  </div>
+
+  <!-- IR -->
+  <div class="sec-title">Sensors de Moviment</div>
+  <div class="sg">
+    <div class="sc ok" id="c-irj"><div class="sc-icon">🌿</div><div class="sc-name">PIR Jardí</div><div class="sc-val ok" id="v-irj">OK</div><div class="sc-sub">Sense moviment</div></div>
+    <div class="sc ok" id="c-ir1"><div class="sc-icon">🏢</div><div class="sc-name">PIR Planta 1</div><div class="sc-val ok" id="v-ir1">OK</div><div class="sc-sub">Sense moviment</div></div>
+    <div class="sc ok" id="c-irp" style="grid-column:span 2"><div class="sc-icon">🚪</div><div class="sc-name">IR Porta Principal</div><div class="sc-val ok" id="v-irp">OK</div><div class="sc-sub">Porta tancada</div></div>
+  </div>
+
+  <!-- ENV -->
+  <div class="sec-title">Ambient</div>
+  <div class="eg">
+    <div class="ec"><div class="ec-icon">🌡️</div><div class="ec-label">Temp</div><div class="ec-val" id="v-temp">—</div></div>
+    <div class="ec"><div class="ec-icon">💧</div><div class="ec-label">Humitat</div><div class="ec-val" id="v-hum">—</div></div>
+    <div class="ec" id="c-gas"><div class="ec-icon">☁️</div><div class="ec-label">Gas</div><div class="ec-val" id="v-gas" style="color:var(--green)">OK</div></div>
+  </div>
+</div>
+
+<!-- PAGE SENSORS -->
+<div class="page" id="page-sensors">
+  <div class="sec-title" style="margin-top:4px">Sensors Instal·lats</div>
+  <div class="sl"><div class="sl-icon">🌿</div><div class="sl-info"><h3>PIR Jardí</h3><p>Sensor moviment exterior · Pin D8</p></div><span class="sl-status">Actiu</span></div>
+  <div class="sl"><div class="sl-icon">🏢</div><div class="sl-info"><h3>PIR Planta 1</h3><p>Sensor moviment interior · Pin D9</p></div><span class="sl-status">Actiu</span></div>
+  <div class="sl"><div class="sl-icon">🚪</div><div class="sl-info"><h3>IR Porta Principal</h3><p>Sensor infraroig porta · Pin D10</p></div><span class="sl-status">Actiu</span></div>
+  <div class="sl"><div class="sl-icon">☁️</div><div class="sl-info"><h3>Sensor Gas MQ2</h3><p>Detector fum i gas · Pin A0</p></div><span class="sl-status">Actiu</span></div>
+  <div class="sl"><div class="sl-icon">💧</div><div class="sl-info"><h3>DHT11 Humitat/Temp</h3><p>Temperatura i humitat · Pin D11</p></div><span class="sl-status">Actiu</span></div>
+  <div class="add-card" onclick="toast('⚙️ Disponible amb ESP32 connectat')"><div class="plus">＋</div><p>Afegir nou sensor</p></div>
+</div>
+
+<!-- PAGE DOOR -->
+<div class="page" id="page-door">
+  <div class="sec-title" style="margin-top:4px">Control Habitació Segura</div>
+  <div class="door-card">
+    <span class="door-icon" id="door-icon">🔐</span>
+    <div class="door-title" id="door-title">Porta Tancada</div>
+    <div class="door-sub">Habitació del pànic · Objectes de valor</div>
+    <button class="door-btn door-open" id="door-btn" onclick="toggleDoor()">🔓 Obrir Porta</button>
+  </div>
+  <div class="sim-card"><h3>ℹ️ Informació</h3><p>Controlat pel servo connectat al pin D6. En estat d'alarma, la porta es bloqueja automàticament per màxima seguretat.</p></div>
+</div>
+
+<!-- PAGE SIM -->
+<div class="page" id="page-sim">
+  <div class="sec-title" style="margin-top:4px">Simulació d'Esdeveniments</div>
+  <div class="sim-card">
+    <h3>🚶 Moviment Detectat</h3>
+    <p>Simula activació dels sensors PIR durant 5 segons</p>
+    <button class="sim-btn w" onclick="simIR('irj')">🌿 PIR Jardí — Moviment detectat</button>
+    <button class="sim-btn w" onclick="simIR('ir1')">🏢 PIR Planta 1 — Moviment detectat</button>
+    <button class="sim-btn w" onclick="simIR('irp')">🚪 IR Porta — Obertura detectada</button>
+  </div>
+  <div class="sim-card">
+    <h3>⚠️ Alarmes Ambientals</h3>
+    <p>Simula detecció de gas o nivell d'humitat crític</p>
+    <button class="sim-btn d" onclick="simGas()">☁️ Alarma Gas Detectat</button>
+    <button class="sim-btn d" onclick="simFlood()">🌊 Alarma Inundació (Humitat &gt;80%)</button>
+  </div>
+  <div class="sim-card">
+    <h3>🔴 Pre-Alarma → Alarma Crítica</h3>
+    <p>Seqüència de 20 segons que escala automàticament a E6</p>
+    <button class="sim-btn d" onclick="simPreAlarm()">⏱️ Iniciar Pre-Alarma (20s → E6)</button>
+  </div>
+  <div class="sim-card">
+    <h3>🚨 Alarma Crítica Directa</h3>
+    <p>Activa immediatament l'alarma crítica total (E6)</p>
+    <button class="sim-btn d" onclick="simCritical()">🚨 Activar Alarma Crítica E6</button>
+  </div>
+  <div class="sim-card">
+    <h3>✅ Reset del Sistema</h3>
+    <p>Restableix tots els sensors i estats a la normalitat</p>
+    <button class="sim-btn" onclick="resetAll()">🔄 Reset Complet del Sistema</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="bnav">
+  <button class="ni active" onclick="nav('home',this)"><span class="icon">🏠</span><span class="lbl">Inici</span></button>
+  <button class="ni" onclick="nav('sensors',this)"><span class="icon">📡</span><span class="lbl">Sensors</span></button>
+  <button class="ni" onclick="nav('door',this)"><span class="icon">🔐</span><span class="lbl">Porta</span></button>
+  <button class="ni" onclick="nav('sim',this)"><span class="icon">⚡</span><span class="lbl">Simulació</span></button>
+</nav>
+
+<!-- FIREBASE SDK (carrega només si activat) -->
+<script>
+if (FIREBASE_ENABLED) {
+  const s1 = document.createElement('script');
+  s1.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js';
+  s1.onload = () => {
+    const s2 = document.createElement('script');
+    s2.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js';
+    s2.onload = () => {
+      const s3 = document.createElement('script');
+      s3.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js';
+      s3.onload = initFirebase;
+      document.head.appendChild(s3);
+    };
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s1);
+}
+
+function initFirebase() {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const db = firebase.database();
+  const storage = firebase.storage();
+
+  // Escolta canvis en temps real de l'ESP32
+  db.ref('alarma').on('value', snap => {
+    const d = snap.val();
+    if (!d) return;
+
+    // Actualitza estat
+    setBadge(d.estat || 0);
+    setSensor('irj', d.IRJ === 1);
+    setSensor('ir1', d.IR1 === 1);
+    setSensor('irp', d.IRP === 1);
+
+    const gv = document.getElementById('v-gas');
+    if (d.G === 1) { gv.style.color='var(--red)'; gv.textContent='ALERTA'; }
+    else { gv.style.color='var(--green)'; gv.textContent='OK'; }
+
+    document.getElementById('v-temp').textContent = (d.temp || '—') + '°C';
+    document.getElementById('v-hum').textContent = (d.H || '—') + '%';
+
+    // Pre-alarma automàtica
+    if (d.estat === 5 && !S.paInterval) startPreAlarm();
+    if (d.estat !== 5) stopPreAlarm();
+
+    // Indicador connectat
+    document.getElementById('sdot').classList.remove('offline');
+    document.getElementById('stext').textContent = 'ESP32 Connectat';
+    document.getElementById('cpill').className = 'conn-pill live';
+    document.getElementById('cpill').textContent = '🟢 Live';
+  });
+
+  // Escolta fotos d'intrusió
+  db.ref('alarma/foto_url').on('value', snap => {
+    const url = snap.val();
+    if (url) showPhoto(url);
+  });
+
+  // URL càmera
+  db.ref('alarma/cam_url').on('value', snap => {
+    window._camUrl = snap.val();
+  });
+}
+</script>
+
+<script>
+// ── STATE ──
+let S = {
+  mode:0, irj:false, ir1:false, irp:false,
+  gas:false, flood:false, hum:45.2, temp:22.1,
+  doorOpen:false, camOn:false, pendMode:null,
+  paInterval:null, demoInterval:null
+};
+
+const USERS = { admin:'casa', securehome:'1234' };
+const MODES = [
+  {text:'🟢 &nbsp;SISTEMA DESARMAT', alarm:false},
+  {text:'🌙 &nbsp;MODE NIT ACTIU',   alarm:false},
+  {text:'🔒 &nbsp;MODE ABSÈNCIA',    alarm:false},
+  {text:'🔴 &nbsp;ALARMA GAS',       alarm:true},
+  {text:'🔴 &nbsp;ALARMA INUNDACIÓ', alarm:true},
+  {text:'⚠️ &nbsp;PRE-ALARMA',       alarm:true},
+  {text:'🚨 &nbsp;ALARMA CRÍTICA',   alarm:true},
+];
+
+// ── LOGIN ──
+function doLogin() {
+  const u = document.getElementById('l-user').value.trim().toLowerCase();
+  const p = document.getElementById('l-pass').value;
+  if (USERS[u] && USERS[u] === p) {
+    const ls = document.getElementById('login-screen');
+    ls.style.transition='opacity .4s'; ls.style.opacity='0';
+    setTimeout(()=>ls.style.display='none', 400);
+    if (!FIREBASE_ENABLED) startDemoData();
+  } else {
+    document.getElementById('l-err').textContent='❌ Usuari o contrasenya incorrectes';
+    document.getElementById('l-pass').classList.add('err');
+    setTimeout(()=>{ document.getElementById('l-pass').classList.remove('err'); document.getElementById('l-err').textContent=''; },2000);
+  }
+}
+function doLogout() {
+  document.getElementById('l-user').value='';
+  document.getElementById('l-pass').value='';
+  const ls=document.getElementById('login-screen');
+  ls.style.opacity='1'; ls.style.display='flex';
+  stopDemoData();
+}
+document.getElementById('l-pass').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+document.getElementById('l-user').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('l-pass').focus(); });
+
+// ── DEMO DATA ──
+function startDemoData() {
+  document.getElementById('v-temp').textContent = S.temp+'°C';
+  document.getElementById('v-hum').textContent = S.hum+'%';
+  S.demoInterval = setInterval(()=>{
+    S.temp=+(S.temp+(Math.random()-.5)*.2).toFixed(1);
+    if(!S.flood) S.hum=+(S.hum+(Math.random()-.5)*.3).toFixed(1);
+    document.getElementById('v-temp').textContent=S.temp+'°C';
+    if(!S.flood) document.getElementById('v-hum').textContent=S.hum+'%';
+  },3000);
+}
+function stopDemoData() { if(S.demoInterval){ clearInterval(S.demoInterval); S.demoInterval=null; } }
+
+// ── NAV ──
+function nav(p,b){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); window.scrollTo(0,0);
+}
+
+// ── BADGE ──
+function setBadge(i){
+  const b=document.getElementById('abadge');
+  b.className='alarm-badge'+(MODES[i]?.alarm?' alarma':'');
+  b.innerHTML=MODES[i]?.text||MODES[0].text;
+}
+
+// ── MODES ──
+function activateMode(m){
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('m'+m).classList.add('active');
+  S.mode=m; setBadge(m);
+  toast(['✅ Sistema desarmat','🌙 Mode nit activat','🔒 Mode absència activat'][m]);
+  stopPreAlarm();
+}
+function reqMode(m){
+  if(m===0&&S.mode>=1){ S.pendMode=0; showPwd(); }
+  else activateMode(m);
+}
+
+// ── PWD ──
+function showPwd(){ document.getElementById('pwd').value=''; document.getElementById('pwd-mo').classList.add('show'); setTimeout(()=>document.getElementById('pwd').focus(),300); }
+function closePwd(){ document.getElementById('pwd-mo').classList.remove('show'); S.pendMode=null; }
+function checkPwd(){
+  if(document.getElementById('pwd').value==='casa'){ closePwd(); activateMode(S.pendMode); toast('✅ Accés concedit'); }
+  else{ const i=document.getElementById('pwd'); i.classList.add('err'); i.value=''; setTimeout(()=>i.classList.remove('err'),400); toast('❌ Contrasenya incorrecta'); }
+}
+document.getElementById('pwd').addEventListener('keydown',e=>{ if(e.key==='Enter') checkPwd(); });
+
+// ── EMERGENCY ──
+function doEmerg(){ document.getElementById('emerg-mo').classList.remove('show'); toast('📞 Simulació: trucant al 112...'); }
+
+// ── CAMERA ──
+function toggleCam(){
+  S.camOn=!S.camOn;
+  const f=document.getElementById('camfeed'),b=document.getElementById('cambtn'),l=document.getElementById('live');
+  if(S.camOn){
+    if(FIREBASE_ENABLED && window._camUrl){
+      f.innerHTML=`<img src="${window._camUrl}" alt="cam" style="width:100%;height:100%;object-fit:cover">`;
+    } else {
+      f.innerHTML='<div style="color:#5AB4FF;font-size:12px;text-align:center;padding:0 20px">📡 En mode real apareixeria<br>el stream de la càmera ESP32-S3</div>';
+    }
+    f.style.background='#0A1628'; b.textContent='Desactivar'; l.style.display='inline'; toast('📷 Càmera activada');
+  } else {
+    f.innerHTML='<span style="font-size:36px">📷</span><span>Càmera desactivada</span>';
+    f.style.background='#0A1020'; b.textContent='Activar'; l.style.display='none'; toast('📷 Càmera desactivada');
+  }
+}
+
+// ── PHOTO ──
+function showPhoto(url){
+  const card=document.getElementById('photo-card');
+  document.getElementById('photo-img').src=url;
+  document.getElementById('photo-time').textContent=new Date().toLocaleTimeString('ca-ES');
+  card.classList.add('show');
+}
+
+// ── SENSORS ──
+function setSensor(n,a){
+  const c=document.getElementById('c-'+n),v=document.getElementById('v-'+n);
+  if(a){ c.className='sc al'; if(n==='irp')c.style.gridColumn='span 2'; v.className='sc-val al'; v.textContent='ACTIU'; }
+  else { c.className='sc ok'; if(n==='irp')c.style.gridColumn='span 2'; v.className='sc-val ok'; v.textContent='OK'; }
+}
+
+// ── PRE-ALARM ──
+function startPreAlarm(){
+  stopPreAlarm(); setBadge(5);
+  let secs=20;
+  document.getElementById('pa-text').style.display='block';
+  document.getElementById('pa-bar').style.display='block';
+  document.getElementById('pa-count').textContent=secs;
+  document.getElementById('pa-prog').style.width='100%';
+  S.paInterval=setInterval(()=>{
+    secs--; document.getElementById('pa-count').textContent=secs;
+    document.getElementById('pa-prog').style.width=(secs/20*100)+'%';
+    if(secs<=0){ stopPreAlarm(); simCritical(); }
+  },1000);
+}
+function stopPreAlarm(){
+  if(S.paInterval){ clearInterval(S.paInterval); S.paInterval=null; }
+  document.getElementById('pa-text').style.display='none';
+  document.getElementById('pa-bar').style.display='none';
+}
+
+// ── SIMULATION ──
+function simIR(n){
+  S[n]=true; setSensor(n,true);
+  toast({'irj':'🌿 Moviment al jardí!','ir1':'🏢 Moviment a Planta 1!','irp':'🚪 Porta oberta!'}[n]);
+  if(S.mode>=1) startPreAlarm();
+  setTimeout(()=>{ S[n]=false; setSensor(n,false); },5000);
+}
+function simGas(){
+  S.gas=true;
+  const v=document.getElementById('v-gas'); v.style.color='var(--red)'; v.textContent='ALERTA';
+  document.getElementById('c-gas').style.background='#FFF8F8';
+  setBadge(3); stopPreAlarm(); toast('☁️ Gas detectat! Alarma E3');
+}
+function simFlood(){
+  S.flood=true; S.hum=95;
+  const v=document.getElementById('v-hum'); v.textContent='95%'; v.style.color='var(--red)';
+  setBadge(4); stopPreAlarm(); toast('🌊 Inundació detectada! Alarma E4');
+}
+function simPreAlarm(){
+  S.irj=true; setSensor('irj',true);
+  startPreAlarm(); toast('⏱️ Pre-alarma iniciada — 20s fins a E6');
+  setTimeout(()=>{ S.irj=false; setSensor('irj',false); },3000);
+}
+function simCritical(){
+  stopPreAlarm();
+  ['irj','ir1','irp'].forEach(n=>{ S[n]=true; setSensor(n,true); });
+  setBadge(6); toast('🚨 ALARMA CRÍTICA E6 ACTIVADA');
+}
+function resetAll(){
+  stopPreAlarm(); S.mode=0; S.gas=false; S.flood=false; S.hum=45.2;
+  ['irj','ir1','irp'].forEach(n=>{ S[n]=false; setSensor(n,false); });
+  const g=document.getElementById('v-gas'); g.style.color='var(--green)'; g.textContent='OK';
+  document.getElementById('c-gas').style.background='';
+  const h=document.getElementById('v-hum'); h.textContent='45%'; h.style.color='';
+  document.getElementById('photo-card').classList.remove('show');
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('m0').classList.add('active');
+  setBadge(0); toast('✅ Reset complet del sistema');
+}
+
+// ── DOOR ──
+function toggleDoor(){
+  S.doorOpen=!S.doorOpen;
+  const i=document.getElementById('door-icon'),t=document.getElementById('door-title'),b=document.getElementById('door-btn');
+  if(S.doorOpen){ i.textContent='🔓'; t.textContent='Porta Oberta'; b.textContent='🔒 Tancar Porta'; b.className='door-btn door-close'; toast('🔓 Porta oberta'); }
+  else { i.textContent='🔐'; t.textContent='Porta Tancada'; b.textContent='🔓 Obrir Porta'; b.className='door-btn door-open'; toast('🔒 Porta tancada'); }
+}
+
+// ── TOAST ──
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+</script>
+</body>
+</html>
