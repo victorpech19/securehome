@@ -140,6 +140,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .gallery-item img{width:110px;height:75px;object-fit:cover;display:block}
 .gallery-item-lbl{font-size:10px;font-weight:600;color:var(--text2);text-align:center;padding:5px 4px;background:var(--card)}
 .gallery-empty{padding:24px;text-align:center;color:var(--text3);font-size:12px}
+.gallery-del-all{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.25);cursor:pointer;font-family:'DM Sans',sans-serif}
+.gallery-del-all:hover{background:rgba(239,68,68,.2)}
+.gallery-item{position:relative}
+.gallery-item .del-btn{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);border:none;border-radius:6px;color:white;font-size:12px;width:22px;height:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s}
+.gallery-item:hover .del-btn{opacity:1}
 
 /* SENSORS */
 .sg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -328,8 +333,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <!-- GALLERY -->
   <div class="gallery-card" id="gallery-card" style="display:none">
     <div class="gallery-head">
-      <span>🖼️ Galeria de Fotos</span>
-      <span class="gallery-count" id="gallery-count"></span>
+      <span>🖼️ Galeria de Fotos <span class="gallery-count" id="gallery-count"></span></span>
+      <button class="gallery-del-all" onclick="deleteAllPhotos()">🗑 Eliminar totes</button>
     </div>
     <div class="gallery-scroll" id="gallery-scroll">
       <div class="gallery-empty">Sense fotos guardades</div>
@@ -431,7 +436,12 @@ if (FIREBASE_ENABLED) {
     s2.onload = () => {
       const s3 = document.createElement('script');
       s3.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js';
-      s3.onload = initFirebase;
+      s3.onload = () => {
+        const s4 = document.createElement('script');
+        s4.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js';
+        s4.onload = initFirebase;
+        document.head.appendChild(s4);
+      };
       document.head.appendChild(s3);
     };
     document.head.appendChild(s2);
@@ -499,15 +509,13 @@ function initFirebase() {
   });
 
   // ── ESCOLTA: galeria de fotos ──
-  db.ref('alarma/fotos').limitToLast(20).on('value', snap => {
-    const fotos = snap.val();
-    updateGallery(fotos);
+  db.ref('alarma/fotos').limitToLast(30).on('value', snap => {
+    updateGallery(snap.val());
   });
 
-  // ── ESCOLTA: URL stream càmera ──
-  db.ref('alarma/cam_url').on('value', snap => {
-    window._camUrl = snap.val();
-  });
+  // ── Auth anònim (necessari per esborrar de Storage) ──
+  firebase.auth().signInAnonymously().catch(e => console.warn('Auth:', e));
+
 }
 
 // Escriu una comanda a Firebase (web → ESP32)
@@ -641,23 +649,61 @@ function updateGallery(fotos) {
   const card   = document.getElementById('gallery-card');
   const scroll = document.getElementById('gallery-scroll');
   const count  = document.getElementById('gallery-count');
-  if (!fotos) { card.style.display = 'none'; return; }
-  const sorted = Object.entries(fotos).sort((a, b) => Number(b[0]) - Number(a[0]));
+  if (!fotos || Object.keys(fotos).length === 0) { card.style.display = 'none'; return; }
+  // Ordenar per clau (text ISO → ordre cronològic descendent)
+  const sorted = Object.entries(fotos)
+    .filter(([, url]) => url && url.startsWith('http'))
+    .sort((a, b) => b[0].localeCompare(a[0]));
+  if (sorted.length === 0) { card.style.display = 'none'; return; }
   card.style.display = 'block';
   count.textContent  = sorted.length + ' foto' + (sorted.length !== 1 ? 's' : '');
-  scroll.innerHTML   = sorted.map(([key, url], i) =>
-    `<div class="gallery-item" id="gi-${key}" onclick="selectGalleryItem('${key}','${url}',${i+1})">
-      <img src="${url}" alt="Foto ${i+1}" loading="lazy">
-      <div class="gallery-item-lbl">Foto ${i+1}</div>
-    </div>`
-  ).join('');
+  scroll.innerHTML   = sorted.map(([key, url]) => {
+    const intrusio = key.includes('INTRUSIO');
+    const label    = key.replace('_INTRUSIO','').replace(/_/g,' ').replace(/(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})/,'$1 $2') || key;
+    const badge    = intrusio ? `<span style="position:absolute;top:4px;left:4px;background:var(--red);color:white;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px">🚨</span>` : '';
+    return `<div class="gallery-item" id="gi-${key}" onclick="selectGalleryItem('${key}','${url}')">
+      <img src="${url}" alt="${key}" loading="lazy" onerror="this.style.opacity='.3'">
+      ${badge}
+      <button class="del-btn" onclick="event.stopPropagation();deletePhoto('${key}','${url}')">🗑</button>
+      <div class="gallery-item-lbl" style="${intrusio?'color:var(--red)':''}">${intrusio?'🚨 ':''} ${label.slice(11,19)}</div>
+    </div>`;
+  }).join('');
 }
 
-function selectGalleryItem(key, url, num) {
+function selectGalleryItem(key, url) {
   document.querySelectorAll('.gallery-item').forEach(el => el.classList.remove('selected'));
   const el = document.getElementById('gi-' + key);
   if (el) el.classList.add('selected');
-  openLightbox(url, 'Foto ' + num);
+  const intrusio = key.includes('INTRUSIO');
+  const label = (intrusio ? '🚨 Intrusió · ' : '') + key.replace('_INTRUSIO','').replace(/_/,' ');
+  openLightbox(url, label);
+}
+
+// ── ESBORRAR FOTOS ──
+function deletePhoto(key, url) {
+  if (!confirm('Esborrar aquesta foto?')) return;
+  if (db) db.ref('alarma/fotos/' + key).remove();
+  try { firebase.storage().refFromURL(url).delete(); } catch(e) { console.warn('Storage delete:', e); }
+  toast('🗑 Foto esborrada');
+}
+
+function deleteAllPhotos() {
+  if (!confirm('Esborrar TOTES les fotos? Aquesta acció no es pot desfer.')) return;
+  if (!db) return;
+  db.ref('alarma/fotos').once('value', snap => {
+    const fotos = snap.val();
+    if (fotos) {
+      Object.values(fotos).forEach(url => {
+        if (url && url.startsWith('http')) {
+          try { firebase.storage().refFromURL(url).delete(); } catch(e) {}
+        }
+      });
+    }
+    db.ref('alarma/fotos').remove();
+    db.ref('alarma/foto_url').remove();
+    document.getElementById('photo-card').classList.remove('show');
+    toast('🗑 Totes les fotos esborrades');
+  });
 }
 
 // ── LIGHTBOX ──
