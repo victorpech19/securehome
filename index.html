@@ -496,16 +496,10 @@ function initFirebase() {
     document.getElementById('cpill').textContent = '🟢 Live';
   });
 
-  // ── ESCOLTA: última foto (notificació ràpida) ──
-  db.ref('alarma/foto_url').on('value', snap => {
+  // ── ESCOLTA: foto d'intrusió real (E5/E6) ──
+  db.ref('alarma/foto_intrusio_url').on('value', snap => {
     const url = snap.val();
-    if (url && url.startsWith('http')) {
-      showPhoto(url);
-      const btn = document.getElementById('foto-req-btn');
-      if (btn) { btn.classList.remove('loading'); btn.innerHTML = '📸 Sol·licitar Foto'; }
-      const rbtn = document.getElementById('rafaga-btn');
-      if (rbtn) { rbtn.classList.remove('loading'); rbtn.innerHTML = '💨 Ràfega ×5'; }
-    }
+    if (url && url.startsWith('http')) showPhoto(url);
   });
 
   // ── ESCOLTA: galeria de fotos ──
@@ -725,16 +719,10 @@ function requestPhoto(){
     btn.classList.add('loading');
     btn.textContent = '⏳ Sol·licitant...';
     fbWrite('/alarma/foto_solicitada', true);
-    // Restaurar botó després de 5s (temps perquè l'ESP32 respongui)
-    setTimeout(() => {
-      btn.classList.remove('loading');
-      btn.innerHTML = '📸 Sol·licitar Foto';
-    }, 5000);
-    toast('📸 Foto sol·licitada a l\'ESP32');
+    setTimeout(() => { btn.classList.remove('loading'); btn.innerHTML = '📸 Sol·licitar Foto'; }, 8000);
+    toast('📸 Foto sol·licitada — apareixerà a la galeria');
   } else {
-    // Mode demo: mostrar foto de prova
-    showPhoto('https://placehold.co/400x225/0A1020/5AB4FF?text=Foto+Demo');
-    toast('📸 Foto de demostració');
+    toast('⚡ Només disponible amb ESP32 connectat');
   }
 }
 
