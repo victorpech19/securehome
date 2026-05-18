@@ -117,8 +117,29 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .photo-head{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:#FFF8F0}
 .photo-head span{font-size:13px;font-weight:600;color:var(--yellow)}
 .photo-time{font-size:11px;color:var(--text2)}
-.photo-feed{background:#0A1020;min-height:190px;display:flex;align-items:center;justify-content:center}
+.photo-feed{background:#0A1020;min-height:190px;display:flex;align-items:center;justify-content:center;cursor:zoom-in}
 .photo-feed img{width:100%;border-radius:0}
+/* LIGHTBOX */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:2000;align-items:center;justify-content:center;flex-direction:column;padding:16px}
+.lightbox.open{display:flex}
+.lightbox img{max-width:100%;max-height:85vh;border-radius:12px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+.lightbox-close{margin-top:18px;color:rgba(255,255,255,.7);font-size:14px;cursor:pointer;background:rgba(255,255,255,.1);border:none;border-radius:20px;padding:8px 20px}
+.lightbox-ts{margin-top:8px;color:rgba(255,255,255,.4);font-size:11px}
+
+/* GALLERY */
+.gallery-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow)}
+.gallery-head{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.gallery-head span{font-size:13px;font-weight:600;color:var(--text)}
+.gallery-count{font-size:11px;font-weight:600;background:var(--blue-pale);color:var(--blue2);padding:3px 10px;border-radius:20px}
+.gallery-scroll{display:flex;gap:10px;padding:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.gallery-scroll::-webkit-scrollbar{height:4px}
+.gallery-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.gallery-item{flex:0 0 110px;scroll-snap-align:start;cursor:pointer;border-radius:10px;overflow:hidden;border:2px solid var(--border);transition:all .2s;background:var(--bg)}
+.gallery-item:hover{border-color:var(--blue);transform:scale(1.04);box-shadow:0 4px 12px rgba(30,144,255,.2)}
+.gallery-item.selected{border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,144,255,.25)}
+.gallery-item img{width:110px;height:75px;object-fit:cover;display:block}
+.gallery-item-lbl{font-size:10px;font-weight:600;color:var(--text2);text-align:center;padding:5px 4px;background:var(--card)}
+.gallery-empty{padding:24px;text-align:center;color:var(--text3);font-size:12px}
 
 /* SENSORS */
 .sg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -224,12 +245,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <p><span class="status-dot offline" id="sdot"></span><span id="stext">Mode Demo</span></p>
   </div>
   <div class="topbar-right">
-    <div class="conn-pill demo" id="cpill">⚡ Demo</div>
     <button class="logout-btn" onclick="doLogout()">Sortir</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLightbox()">
+  <img id="lb-img" src="" alt="">
+  <div class="lightbox-ts" id="lb-ts"></div>
+  <button class="lightbox-close" onclick="closeLightbox()">✕ Tancar</button>
+</div>
 
 <!-- PWD MODAL -->
 <div class="mo" id="pwd-mo">
@@ -286,6 +313,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="foto-req-btn" id="foto-req-btn" onclick="requestPhoto()">
         📸 Sol·licitar Foto
       </button>
+      <button class="foto-req-btn" id="rafaga-btn" onclick="requestRafaga()">
+        💨 Ràfega ×5
+      </button>
     </div>
   </div>
 
@@ -295,8 +325,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <span>📸 Foto d'Intrusió Detectada</span>
       <span class="photo-time" id="photo-time"></span>
     </div>
-    <div class="photo-feed">
+    <div class="photo-feed" onclick="openLightbox(document.getElementById('photo-img').src, document.getElementById('photo-time').textContent)">
       <img id="photo-img" src="" alt="Foto intrusió">
+    </div>
+  </div>
+
+  <!-- GALLERY -->
+  <div class="gallery-card" id="gallery-card" style="display:none">
+    <div class="gallery-head">
+      <span>🖼️ Galeria de Fotos</span>
+      <span class="gallery-count" id="gallery-count"></span>
+    </div>
+    <div class="gallery-scroll" id="gallery-scroll">
+      <div class="gallery-empty">Sense fotos guardades</div>
     </div>
   </div>
 
@@ -306,6 +347,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="sc ok" id="c-irj"><div class="sc-icon">🌿</div><div class="sc-name">PIR Jardí</div><div class="sc-val ok" id="v-irj">OK</div><div class="sc-sub">Sense moviment</div></div>
     <div class="sc ok" id="c-ir1"><div class="sc-icon">🏢</div><div class="sc-name">PIR Planta 1</div><div class="sc-val ok" id="v-ir1">OK</div><div class="sc-sub">Sense moviment</div></div>
     <div class="sc ok" id="c-irp" style="grid-column:span 2"><div class="sc-icon">🚪</div><div class="sc-name">IR Porta Principal</div><div class="sc-val ok" id="v-irp">OK</div><div class="sc-sub">Porta tancada</div></div>
+    <div class="sc ok" id="c-finestra" style="grid-column:span 2"><div class="sc-icon">🪟</div><div class="sc-name">Sensor Finestra</div><div class="sc-val ok" id="v-finestra">OK</div><div class="sc-sub">Finestra tancada</div></div>
   </div>
 
   <!-- ENV -->
@@ -325,6 +367,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="sl"><div class="sl-icon">🚪</div><div class="sl-info"><h3>IR Porta Principal</h3><p>Sensor infraroig porta · GPIO 41</p></div><span class="sl-status">Actiu</span></div>
   <div class="sl"><div class="sl-icon">☁️</div><div class="sl-info"><h3>Sensor Gas MQ-2</h3><p>Detector fum i gas · GPIO 1 (ADC1)</p></div><span class="sl-status">Actiu</span></div>
   <div class="sl"><div class="sl-icon">💧</div><div class="sl-info"><h3>DHT11 Humitat/Temp</h3><p>Temperatura i humitat · GPIO 42</p></div><span class="sl-status">Actiu</span></div>
+  <div class="sl"><div class="sl-icon">🪟</div><div class="sl-info"><h3>Sensor Finestra</h3><p>Interruptor magnètic · GPIO 3</p></div><span class="sl-status">Actiu</span></div>
   <div class="add-card" onclick="toast('⚙️ Disponible amb ESP32 connectat')"><div class="plus">＋</div><p>Afegir nou sensor</p></div>
 </div>
 
@@ -349,6 +392,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="sim-btn w" onclick="simIR('irj')">🌿 PIR Jardí — Moviment detectat</button>
     <button class="sim-btn w" onclick="simIR('ir1')">🏢 PIR Planta 1 — Moviment detectat</button>
     <button class="sim-btn w" onclick="simIR('irp')">🚪 IR Porta — Obertura detectada</button>
+    <button class="sim-btn w" onclick="simIR('finestra')">🪟 Finestra — Obertura detectada</button>
   </div>
   <div class="sim-card">
     <h3>⚠️ Alarmes Ambientals</h3>
@@ -426,9 +470,10 @@ function initFirebase() {
     if (e !== 5) stopPreAlarm();
 
     // Sensors IR
-    setSensor('irj', d.IRJ === 1);
-    setSensor('ir1', d.IR1 === 1);
-    setSensor('irp', d.IRP === 1);
+    setSensor('irj',      d.IRJ      === 1);
+    setSensor('ir1',      d.IR1      === 1);
+    setSensor('irp',      d.IRP      === 1);
+    setSensor('finestra', d.FINESTRA === 1);
 
     // Gas
     const gv = document.getElementById('v-gas');
@@ -446,10 +491,22 @@ function initFirebase() {
     document.getElementById('cpill').textContent = '🟢 Live';
   });
 
-  // ── ESCOLTA: fotos d'intrusió ──
+  // ── ESCOLTA: última foto (notificació ràpida) ──
   db.ref('alarma/foto_url').on('value', snap => {
     const url = snap.val();
-    if (url && url !== 'sense_camera') showPhoto(url);
+    if (url && url.startsWith('http')) {
+      showPhoto(url);
+      const btn = document.getElementById('foto-req-btn');
+      if (btn) { btn.classList.remove('loading'); btn.innerHTML = '📸 Sol·licitar Foto'; }
+      const rbtn = document.getElementById('rafaga-btn');
+      if (rbtn) { rbtn.classList.remove('loading'); rbtn.innerHTML = '💨 Ràfega ×5'; }
+    }
+  });
+
+  // ── ESCOLTA: galeria de fotos ──
+  db.ref('alarma/fotos').limitToLast(20).on('value', snap => {
+    const fotos = snap.val();
+    updateGallery(fotos);
   });
 
   // ── ESCOLTA: URL stream càmera ──
@@ -469,7 +526,7 @@ function fbWrite(path, value) {
 <script>
 // ── STATE ──
 let S = {
-  mode:0, irj:false, ir1:false, irp:false,
+  mode:0, irj:false, ir1:false, irp:false, finestra:false,
   gas:false, flood:false, hum:45.2, temp:22.1,
   doorOpen:false, camOn:false, pendMode:null,
   paInterval:null, demoInterval:null
@@ -584,6 +641,42 @@ function toggleCam(){
   }
 }
 
+// ── GALERIA ──
+function updateGallery(fotos) {
+  const card   = document.getElementById('gallery-card');
+  const scroll = document.getElementById('gallery-scroll');
+  const count  = document.getElementById('gallery-count');
+  if (!fotos) { card.style.display = 'none'; return; }
+  const sorted = Object.entries(fotos).sort((a, b) => Number(b[0]) - Number(a[0]));
+  card.style.display = 'block';
+  count.textContent  = sorted.length + ' foto' + (sorted.length !== 1 ? 's' : '');
+  scroll.innerHTML   = sorted.map(([key, url], i) =>
+    `<div class="gallery-item" id="gi-${key}" onclick="selectGalleryItem('${key}','${url}',${i+1})">
+      <img src="${url}" alt="Foto ${i+1}" loading="lazy">
+      <div class="gallery-item-lbl">Foto ${i+1}</div>
+    </div>`
+  ).join('');
+}
+
+function selectGalleryItem(key, url, num) {
+  document.querySelectorAll('.gallery-item').forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById('gi-' + key);
+  if (el) el.classList.add('selected');
+  openLightbox(url, 'Foto ' + num);
+}
+
+// ── LIGHTBOX ──
+function openLightbox(url, label) {
+  if (!url || !url.startsWith('http')) return;
+  document.getElementById('lb-img').src = url;
+  document.getElementById('lb-ts').textContent  = label || '';
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lb-img').src = '';
+}
+
 // ── SOL·LICITAR FOTO ──
 function requestPhoto(){
   const btn = document.getElementById('foto-req-btn');
@@ -612,11 +705,29 @@ function showPhoto(url){
   card.classList.add('show');
 }
 
+// ── RÀFEGA ──
+function requestRafaga(){
+  const btn = document.getElementById('rafaga-btn');
+  if (FIREBASE_ENABLED && db) {
+    btn.classList.add('loading');
+    btn.textContent = '⏳ Capturant...';
+    fbWrite('/alarma/rafaga_req', true);
+    setTimeout(() => {
+      btn.classList.remove('loading');
+      btn.innerHTML = '💨 Ràfega ×5';
+    }, 10000);
+    toast('💨 Ràfega sol·licitada — 5 fotos en 2.5s');
+  } else {
+    toast('⚡ Ràfega només disponible amb ESP32 connectat');
+  }
+}
+
 // ── SENSORS ──
 function setSensor(n,a){
   const c=document.getElementById('c-'+n),v=document.getElementById('v-'+n);
-  if(a){ c.className='sc al'; if(n==='irp')c.style.gridColumn='span 2'; v.className='sc-val al'; v.textContent='ACTIU'; }
-  else { c.className='sc ok'; if(n==='irp')c.style.gridColumn='span 2'; v.className='sc-val ok'; v.textContent='OK'; }
+  const wide = n==='irp'||n==='finestra';
+  if(a){ c.className='sc al'; if(wide)c.style.gridColumn='span 2'; v.className='sc-val al'; v.textContent='ACTIU'; }
+  else { c.className='sc ok'; if(wide)c.style.gridColumn='span 2'; v.className='sc-val ok'; v.textContent='OK'; }
 }
 
 // ── PRE-ALARM ──
@@ -642,7 +753,7 @@ function stopPreAlarm(){
 // ── SIMULATION ──
 function simIR(n){
   S[n]=true; setSensor(n,true);
-  toast({'irj':'🌿 Moviment al jardí!','ir1':'🏢 Moviment a Planta 1!','irp':'🚪 Porta oberta!'}[n]);
+  toast({'irj':'🌿 Moviment al jardí!','ir1':'🏢 Moviment a Planta 1!','irp':'🚪 Porta oberta!','finestra':'🪟 Finestra oberta!'}[n]);
   if(S.mode>=1) startPreAlarm();
   setTimeout(()=>{ S[n]=false; setSensor(n,false); },5000);
 }
