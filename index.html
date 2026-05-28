@@ -347,7 +347,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="sc ok" id="c-irj"><div class="sc-icon">🌿</div><div class="sc-name">PIR Jardí</div><div class="sc-val ok" id="v-irj">OK</div><div class="sc-sub">Sense moviment</div></div>
     <div class="sc ok" id="c-ir1"><div class="sc-icon">🏢</div><div class="sc-name">PIR Planta 1</div><div class="sc-val ok" id="v-ir1">OK</div><div class="sc-sub">Sense moviment</div></div>
     <div class="sc ok" id="c-irp" style="grid-column:span 2"><div class="sc-icon">🚪</div><div class="sc-name">IR Porta Principal</div><div class="sc-val ok" id="v-irp">OK</div><div class="sc-sub">Porta tancada</div></div>
-    <div class="sc ok" id="c-finestra" style="grid-column:span 2"><div class="sc-icon">🪟</div><div class="sc-name">Sensor Finestra</div><div class="sc-val ok" id="v-finestra">OK</div><div class="sc-sub">Finestra tancada</div></div>
+    <div class="sc ok" id="c-finestra"><div class="sc-icon">🪟</div><div class="sc-name">Sensor Finestra</div><div class="sc-val ok" id="v-finestra">OK</div><div class="sc-sub">Finestra tancada</div></div>
+    <div class="sc ok" id="c-pirw"><div class="sc-icon">🔍</div><div class="sc-name">PIR Finestra</div><div class="sc-val ok" id="v-pirw">OK</div><div class="sc-sub">Sense moviment</div></div>
   </div>
 
   <!-- ENV -->
@@ -357,6 +358,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="ec"><div class="ec-icon">💧</div><div class="ec-label">Humitat</div><div class="ec-val" id="v-hum">—</div></div>
     <div class="ec" id="c-gas"><div class="ec-icon">☁️</div><div class="ec-label">Gas</div><div class="ec-val" id="v-gas" style="color:var(--green)">OK</div></div>
   </div>
+
+  <!-- WATER -->
+  <div class="sec-title">Inundació</div>
+  <div class="sg">
+    <div class="sc ok" id="c-water" style="grid-column:span 2">
+      <div class="sc-icon">🌊</div>
+      <div class="sc-name">Sensor Nivell Aigua</div>
+      <div class="sc-val ok" id="v-water">OK</div>
+      <div class="sc-sub" id="v-water-val">Sense aigua detectada</div>
+    </div>
+  </div>
 </div>
 
 <!-- PAGE SENSORS -->
@@ -365,8 +377,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="sl"><div class="sl-icon">🌿</div><div class="sl-info"><h3>PIR Jardí</h3><p>Sensor moviment exterior · GPIO 39</p></div><span class="sl-status">Actiu</span></div>
   <div class="sl"><div class="sl-icon">🏢</div><div class="sl-info"><h3>PIR Planta 1</h3><p>Sensor moviment interior · GPIO 40</p></div><span class="sl-status">Actiu</span></div>
   <div class="sl"><div class="sl-icon">🚪</div><div class="sl-info"><h3>IR Porta Principal</h3><p>Sensor infraroig porta · GPIO 41</p></div><span class="sl-status">Actiu</span></div>
-  <div class="sl"><div class="sl-icon">☁️</div><div class="sl-info"><h3>Sensor Gas MQ-2</h3><p>Detector fum i gas · GPIO 1 (ADC1)</p></div><span class="sl-status">Actiu</span></div>
-  <div class="sl"><div class="sl-icon">💧</div><div class="sl-info"><h3>DHT11 Humitat/Temp</h3><p>Temperatura i humitat · GPIO 42</p></div><span class="sl-status">Actiu</span></div>
+  <div class="sl"><div class="sl-icon">🔍</div><div class="sl-info"><h3>PIR Finestra</h3><p>PIR petit finestra · GPIO 5</p></div><span class="sl-status">Actiu</span></div>
+  <div class="sl"><div class="sl-icon">☁️</div><div class="sl-info"><h3>Sensor Gas MQ-2</h3><p>Detector fum i gas · GPIO 1 (D0 digital)</p></div><span class="sl-status">Actiu</span></div>
+  <div class="sl"><div class="sl-icon">🌊</div><div class="sl-info"><h3>Sensor Nivell Aigua</h3><p>Detector inundació · GPIO 4 (analògic)</p></div><span class="sl-status">Actiu</span></div>
+  <div class="sl"><div class="sl-icon">🌡️</div><div class="sl-info"><h3>DHT11 Temp/Humitat</h3><p>Temperatura i humitat · GPIO 42</p></div><span class="sl-status">Actiu</span></div>
   <div class="sl"><div class="sl-icon">🪟</div><div class="sl-info"><h3>Sensor Finestra</h3><p>Interruptor magnètic · GPIO 3</p></div><span class="sl-status">Actiu</span></div>
   <div class="add-card" onclick="toast('⚙️ Disponible amb ESP32 connectat')"><div class="plus">＋</div><p>Afegir nou sensor</p></div>
 </div>
@@ -393,12 +407,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="sim-btn w" onclick="simIR('ir1')">🏢 PIR Planta 1 — Moviment detectat</button>
     <button class="sim-btn w" onclick="simIR('irp')">🚪 IR Porta — Obertura detectada</button>
     <button class="sim-btn w" onclick="simIR('finestra')">🪟 Finestra — Obertura detectada</button>
+    <button class="sim-btn w" onclick="simIR('pirw')">🔍 PIR Finestra — Moviment detectat</button>
   </div>
   <div class="sim-card">
     <h3>⚠️ Alarmes Ambientals</h3>
-    <p>Simula detecció de gas o nivell d'humitat crític</p>
+    <p>Simula detecció de gas o presència d'aigua</p>
     <button class="sim-btn d" onclick="simGas()">☁️ Alarma Gas Detectat</button>
-    <button class="sim-btn d" onclick="simFlood()">🌊 Alarma Inundació (Humitat &gt;80%)</button>
+    <button class="sim-btn d" onclick="simFlood()">🌊 Alarma Inundació (Sensor Aigua)</button>
   </div>
   <div class="sim-card">
     <h3>🔴 Pre-Alarma → Alarma Crítica</h3>
@@ -474,20 +489,35 @@ function initFirebase() {
     if (e === 5 && !S.paInterval) startPreAlarm();
     if (e !== 5) stopPreAlarm();
 
-    // Sensors IR
+    // Sensors IR + PIR finestra
     setSensor('irj',      d.IRJ      === 1);
     setSensor('ir1',      d.IR1      === 1);
     setSensor('irp',      d.IRP      === 1);
     setSensor('finestra', d.FINESTRA === 1);
+    setSensor('pirw',     d.PIRW     === 1);
 
-    // Gas
+    // Gas (digital)
     const gv = document.getElementById('v-gas');
     if (d.G === 1) { gv.style.color = 'var(--red)'; gv.textContent = 'ALERTA'; document.getElementById('c-gas').style.background = '#FFF8F8'; }
     else           { gv.style.color = 'var(--green)'; gv.textContent = 'OK'; document.getElementById('c-gas').style.background = ''; }
 
+    // Sensor d'aigua
+    const wc = document.getElementById('c-water');
+    const wv = document.getElementById('v-water');
+    const wval = document.getElementById('v-water-val');
+    if (d.WATER === 1) {
+      wc.className = 'sc al'; wc.style.gridColumn = 'span 2';
+      wv.className = 'sc-val al'; wv.textContent = 'AIGUA!';
+      wval.textContent = 'Nivell: ' + (d.WATER_VAL ?? '—');
+    } else {
+      wc.className = 'sc ok'; wc.style.gridColumn = 'span 2';
+      wv.className = 'sc-val ok'; wv.textContent = 'OK';
+      wval.textContent = 'Sense aigua detectada';
+    }
+
     // Temperatura i humitat
     if (d.temp != null) document.getElementById('v-temp').textContent = d.temp.toFixed(1) + '°C';
-    if (d.H    != null) document.getElementById('v-hum').textContent  = d.H.toFixed(0) + '%';
+    if (d.hum  != null) document.getElementById('v-hum').textContent  = d.hum.toFixed(0) + '%';
 
     // Indicador de connexió
     document.getElementById('sdot').classList.remove('offline');
@@ -523,8 +553,8 @@ function fbWrite(path, value) {
 <script>
 // ── STATE ──
 let S = {
-  mode:0, irj:false, ir1:false, irp:false, finestra:false,
-  gas:false, flood:false, hum:45.2, temp:22.1,
+  mode:0, irj:false, ir1:false, irp:false, finestra:false, pirw:false,
+  gas:false, water:false, hum:45.2, temp:22.1,
   doorOpen:false, camOn:false, pendMode:null,
   paInterval:null, demoInterval:null
 };
@@ -782,7 +812,7 @@ function stopPreAlarm(){
 // ── SIMULATION ──
 function simIR(n){
   S[n]=true; setSensor(n,true);
-  toast({'irj':'🌿 Moviment al jardí!','ir1':'🏢 Moviment a Planta 1!','irp':'🚪 Porta oberta!','finestra':'🪟 Finestra oberta!'}[n]);
+  toast({'irj':'🌿 Moviment al jardí!','ir1':'🏢 Moviment a Planta 1!','irp':'🚪 Porta oberta!','finestra':'🪟 Finestra oberta!','pirw':'🔍 Moviment a la finestra!'}[n]);
   if(S.mode>=1) startPreAlarm();
   setTimeout(()=>{ S[n]=false; setSensor(n,false); },5000);
 }
@@ -793,8 +823,11 @@ function simGas(){
   setBadge(3); stopPreAlarm(); toast('☁️ Gas detectat! Alarma E3');
 }
 function simFlood(){
-  S.flood=true; S.hum=95;
-  const v=document.getElementById('v-hum'); v.textContent='95%'; v.style.color='var(--red)';
+  S.water=true;
+  const wc=document.getElementById('c-water'), wv=document.getElementById('v-water'), wval=document.getElementById('v-water-val');
+  wc.className='sc al'; wc.style.gridColumn='span 2';
+  wv.className='sc-val al'; wv.textContent='AIGUA!';
+  wval.textContent='Nivell: 850 (simulació)';
   setBadge(4); stopPreAlarm(); toast('🌊 Inundació detectada! Alarma E4');
 }
 function simPreAlarm(){
@@ -808,16 +841,17 @@ function simCritical(){
   setBadge(6); toast('🚨 ALARMA CRÍTICA E6 ACTIVADA');
 }
 function resetAll(){
-  stopPreAlarm(); S.mode=0; S.gas=false; S.flood=false; S.hum=45.2;
-  ['irj','ir1','irp'].forEach(n=>{ S[n]=false; setSensor(n,false); });
+  stopPreAlarm(); S.mode=0; S.gas=false; S.water=false; S.hum=45.2;
+  ['irj','ir1','irp','finestra','pirw'].forEach(n=>{ S[n]=false; setSensor(n,false); });
   const g=document.getElementById('v-gas'); g.style.color='var(--green)'; g.textContent='OK';
   document.getElementById('c-gas').style.background='';
   const h=document.getElementById('v-hum'); h.textContent='45%'; h.style.color='';
+  const wc=document.getElementById('c-water'), wv=document.getElementById('v-water'), wval=document.getElementById('v-water-val');
+  wc.className='sc ok'; wc.style.gridColumn='span 2'; wv.className='sc-val ok'; wv.textContent='OK'; wval.textContent='Sense aigua detectada';
   document.getElementById('photo-card').classList.remove('show');
   document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('m0').classList.add('active');
   setBadge(0); toast('✅ Reset complet del sistema');
-  // Reset Firebase si connectat
   fbWrite('/alarma/mode_req', 0);
 }
 
