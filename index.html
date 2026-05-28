@@ -185,6 +185,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .add-card .plus{font-size:32px;color:var(--text3);margin-bottom:6px}
 .add-card p{color:var(--text2);font-size:12px}
 
+/* SENSOR TOGGLE */
+.sens-toggle{font-size:10px;font-weight:700;padding:6px 14px;border-radius:20px;border:1.5px solid;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;white-space:nowrap}
+.sens-toggle.on{background:rgba(16,185,129,.12);color:var(--green);border-color:rgba(16,185,129,.3)}
+.sens-toggle.off{background:rgba(239,68,68,.1);color:var(--red);border-color:rgba(239,68,68,.25)}
+
 /* SIM */
 .sim-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:12px;box-shadow:var(--shadow)}
 .sim-card h3{font-size:14px;font-weight:700;margin-bottom:4px;color:var(--text)}
@@ -261,6 +266,36 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <img id="lb-img" src="" alt="">
   <div class="lightbox-ts" id="lb-ts"></div>
   <button class="lightbox-close" onclick="closeLightbox()">✕ Tancar</button>
+</div>
+
+<!-- ADD SENSOR MODAL -->
+<div class="mo" id="addsens-mo">
+  <div class="md">
+    <h2>➕ Afegir Nou Sensor</h2>
+    <p>Configura un nou sensor per integrar-lo al sistema SecureHome.</p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+      <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Tipus de sensor</div>
+        <select style="width:100%;background:transparent;border:none;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none">
+          <option>🌿 PIR — Moviment exterior</option>
+          <option>🏢 PIR — Moviment interior</option>
+          <option>🚪 IR — Porta / finestra</option>
+          <option>☁️ Gas / fum (MQ-2)</option>
+          <option>🌊 Nivell d'aigua</option>
+          <option>🌡️ Temperatura / humitat</option>
+        </select>
+      </div>
+      <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">GPIO</div>
+        <input type="number" placeholder="Ex: 13" style="width:100%;background:transparent;border:none;font-family:'DM Mono',monospace;font-size:14px;color:var(--text);outline:none">
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:14px;text-align:center">⚠️ Funcionalitat disponible en versió completa</div>
+    <div class="md-btns">
+      <button class="md-btn c" onclick="document.getElementById('addsens-mo').classList.remove('show')">Tancar</button>
+      <button class="md-btn ok" onclick="document.getElementById('addsens-mo').classList.remove('show');toast('⚙️ Disponible en versió completa')">Afegir</button>
+    </div>
+  </div>
 </div>
 
 <!-- PWD MODAL -->
@@ -347,8 +382,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="sc ok" id="c-irj"><div class="sc-icon">🌿</div><div class="sc-name">PIR Jardí</div><div class="sc-val ok" id="v-irj">OK</div><div class="sc-sub">Sense moviment</div></div>
     <div class="sc ok" id="c-ir1"><div class="sc-icon">🏢</div><div class="sc-name">PIR Planta 1</div><div class="sc-val ok" id="v-ir1">OK</div><div class="sc-sub">Sense moviment</div></div>
     <div class="sc ok" id="c-irp" style="grid-column:span 2"><div class="sc-icon">🚪</div><div class="sc-name">IR Porta Principal</div><div class="sc-val ok" id="v-irp">OK</div><div class="sc-sub">Porta tancada</div></div>
-    <div class="sc ok" id="c-finestra"><div class="sc-icon">🪟</div><div class="sc-name">Sensor Finestra</div><div class="sc-val ok" id="v-finestra">OK</div><div class="sc-sub">Finestra tancada</div></div>
-    <div class="sc ok" id="c-pirw"><div class="sc-icon">🔍</div><div class="sc-name">PIR Finestra</div><div class="sc-val ok" id="v-pirw">OK</div><div class="sc-sub">Sense moviment</div></div>
+    <div class="sc ok" id="c-pirw" style="grid-column:span 2"><div class="sc-icon">🔍</div><div class="sc-name">PIR Finestra</div><div class="sc-val ok" id="v-pirw">OK</div><div class="sc-sub">Sense moviment</div></div>
   </div>
 
   <!-- ENV -->
@@ -374,15 +408,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- PAGE SENSORS -->
 <div class="page" id="page-sensors">
   <div class="sec-title" style="margin-top:4px">Sensors Instal·lats</div>
-  <div class="sl"><div class="sl-icon">🌿</div><div class="sl-info"><h3>PIR Jardí</h3><p>Sensor moviment exterior · GPIO 39</p></div><span class="sl-status">Actiu</span></div>
-  <div class="sl"><div class="sl-icon">🏢</div><div class="sl-info"><h3>PIR Planta 1</h3><p>Sensor moviment interior · GPIO 40</p></div><span class="sl-status">Actiu</span></div>
-  <div class="sl"><div class="sl-icon">🚪</div><div class="sl-info"><h3>IR Porta Principal</h3><p>Sensor infraroig porta · GPIO 41</p></div><span class="sl-status">Actiu</span></div>
-  <div class="sl"><div class="sl-icon">🔍</div><div class="sl-info"><h3>PIR Finestra</h3><p>PIR petit finestra · GPIO 5</p></div><span class="sl-status">Actiu</span></div>
-  <div class="sl"><div class="sl-icon">☁️</div><div class="sl-info"><h3>Sensor Gas MQ-2</h3><p>Detector fum i gas · GPIO 1 (D0 digital)</p></div><span class="sl-status">Actiu</span></div>
-  <div class="sl"><div class="sl-icon">🌊</div><div class="sl-info"><h3>Sensor Nivell Aigua</h3><p>Detector inundació · GPIO 4 (analògic)</p></div><span class="sl-status">Actiu</span></div>
+  <p style="font-size:11px;color:var(--text2);margin-bottom:12px">Prem el botó per activar o desactivar un sensor. Desactivar-lo evita falsos positius.</p>
+  <div class="sl"><div class="sl-icon">🌿</div><div class="sl-info"><h3>PIR Jardí</h3><p>Sensor moviment exterior · GPIO 39</p></div><button class="sens-toggle on" id="tog-irj" onclick="toggleSensor('irj')">Actiu</button></div>
+  <div class="sl"><div class="sl-icon">🏢</div><div class="sl-info"><h3>PIR Planta 1</h3><p>Sensor moviment interior · GPIO 40</p></div><button class="sens-toggle on" id="tog-ir1" onclick="toggleSensor('ir1')">Actiu</button></div>
+  <div class="sl"><div class="sl-icon">🚪</div><div class="sl-info"><h3>IR Porta Principal</h3><p>Sensor infraroig porta · GPIO 41</p></div><button class="sens-toggle on" id="tog-irp" onclick="toggleSensor('irp')">Actiu</button></div>
+  <div class="sl"><div class="sl-icon">🔍</div><div class="sl-info"><h3>PIR Finestra</h3><p>PIR petit finestra · GPIO 5</p></div><button class="sens-toggle on" id="tog-pirw" onclick="toggleSensor('pirw')">Actiu</button></div>
+  <div class="sl"><div class="sl-icon">☁️</div><div class="sl-info"><h3>Sensor Gas MQ-2</h3><p>Detector fum i gas · GPIO 1 (D0 digital)</p></div><button class="sens-toggle on" id="tog-gas" onclick="toggleSensor('gas')">Actiu</button></div>
+  <div class="sl"><div class="sl-icon">🌊</div><div class="sl-info"><h3>Sensor Nivell Aigua</h3><p>Detector inundació · GPIO 4 (analògic)</p></div><button class="sens-toggle on" id="tog-water" onclick="toggleSensor('water')">Actiu</button></div>
   <div class="sl"><div class="sl-icon">🌡️</div><div class="sl-info"><h3>DHT11 Temp/Humitat</h3><p>Temperatura i humitat · GPIO 42</p></div><span class="sl-status">Actiu</span></div>
-  <div class="sl"><div class="sl-icon">🪟</div><div class="sl-info"><h3>Sensor Finestra</h3><p>Interruptor magnètic · GPIO 3</p></div><span class="sl-status">Actiu</span></div>
-  <div class="add-card" onclick="toast('⚙️ Disponible amb ESP32 connectat')"><div class="plus">＋</div><p>Afegir nou sensor</p></div>
+  <div class="add-card" onclick="document.getElementById('addsens-mo').classList.add('show')"><div class="plus">＋</div><p>Afegir nou sensor</p></div>
 </div>
 
 <!-- PAGE DOOR -->
@@ -406,7 +440,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="sim-btn w" onclick="simIR('irj')">🌿 PIR Jardí — Moviment detectat</button>
     <button class="sim-btn w" onclick="simIR('ir1')">🏢 PIR Planta 1 — Moviment detectat</button>
     <button class="sim-btn w" onclick="simIR('irp')">🚪 IR Porta — Obertura detectada</button>
-    <button class="sim-btn w" onclick="simIR('finestra')">🪟 Finestra — Obertura detectada</button>
     <button class="sim-btn w" onclick="simIR('pirw')">🔍 PIR Finestra — Moviment detectat</button>
   </div>
   <div class="sim-card">
@@ -490,11 +523,10 @@ function initFirebase() {
     if (e !== 5) stopPreAlarm();
 
     // Sensors IR + PIR finestra
-    setSensor('irj',      d.IRJ      === 1);
-    setSensor('ir1',      d.IR1      === 1);
-    setSensor('irp',      d.IRP      === 1);
-    setSensor('finestra', d.FINESTRA === 1);
-    setSensor('pirw',     d.PIRW     === 1);
+    setSensor('irj',  d.IRJ  === 1);
+    setSensor('ir1',  d.IR1  === 1);
+    setSensor('irp',  d.IRP  === 1);
+    setSensor('pirw', d.PIRW === 1);
 
     // Gas (digital)
     const gv = document.getElementById('v-gas');
@@ -526,6 +558,12 @@ function initFirebase() {
     document.getElementById('cpill').textContent = '🟢 Live';
   });
 
+  // ── ESCOLTA: estat de la porta (actualitzat per l'ESP32) ──
+  db.ref('alarma/porta_estat').on('value', snap => {
+    const oberta = snap.val() === 1;
+    if (oberta !== S.doorOpen) { S.doorOpen = oberta; updateDoorUI(); }
+  });
+
   // ── ESCOLTA: foto d'intrusió real (E5/E6) ──
   db.ref('alarma/foto_intrusio_url').on('value', snap => {
     const url = snap.val();
@@ -553,11 +591,14 @@ function fbWrite(path, value) {
 <script>
 // ── STATE ──
 let S = {
-  mode:0, irj:false, ir1:false, irp:false, finestra:false, pirw:false,
+  mode:0, irj:false, ir1:false, irp:false, pirw:false,
   gas:false, water:false, hum:45.2, temp:22.1,
-  doorOpen:false, camOn:false, pendMode:null,
+  doorOpen:true, camOn:false, pendMode:null,
   paInterval:null, demoInterval:null
 };
+
+// Sensors actius/inactius (controlats des de la pàgina Sensors)
+const sensorsActius = { irj:true, ir1:true, irp:true, pirw:true, gas:true, water:true };
 
 const USERS = { admin:'casa', securehome:'1234' };
 const MODES = [
@@ -578,6 +619,8 @@ function doLogin() {
     const ls = document.getElementById('login-screen');
     ls.style.transition='opacity .4s'; ls.style.opacity='0';
     setTimeout(()=>ls.style.display='none', 400);
+    updateDoorUI();
+    initSensTogles();
     if (!FIREBASE_ENABLED) startDemoData();
   } else {
     document.getElementById('l-err').textContent='❌ Usuari o contrasenya incorrectes';
@@ -784,7 +827,8 @@ function requestRafaga(){
 // ── SENSORS ──
 function setSensor(n,a){
   const c=document.getElementById('c-'+n),v=document.getElementById('v-'+n);
-  const wide = n==='irp'||n==='finestra';
+  if(!c||!v) return; // sensor eliminat de la UI
+  const wide = n==='irp'||n==='pirw';
   if(a){ c.className='sc al'; if(wide)c.style.gridColumn='span 2'; v.className='sc-val al'; v.textContent='ACTIU'; }
   else { c.className='sc ok'; if(wide)c.style.gridColumn='span 2'; v.className='sc-val ok'; v.textContent='OK'; }
 }
@@ -809,11 +853,29 @@ function stopPreAlarm(){
   document.getElementById('pa-bar').style.display='none';
 }
 
+// ── SENSOR TOGGLE ──
+const simCodes = { irj:1, ir1:2, irp:3, pirw:4 };
+function toggleSensor(key){
+  sensorsActius[key] = !sensorsActius[key];
+  const btn = document.getElementById('tog-'+key);
+  if(sensorsActius[key]){ btn.textContent='Actiu';   btn.className='sens-toggle on'; }
+  else                  { btn.textContent='Inactiu'; btn.className='sens-toggle off'; }
+  fbWrite('/alarma/sens_'+key, sensorsActius[key]);
+  toast(sensorsActius[key] ? '✅ Sensor activat' : '⚠️ Sensor desactivat — la placa ho sabrà en 15s');
+}
+function initSensTogles(){
+  Object.keys(sensorsActius).forEach(k=>{
+    const btn = document.getElementById('tog-'+k);
+    if(btn){ btn.textContent=sensorsActius[k]?'Actiu':'Inactiu'; btn.className='sens-toggle '+(sensorsActius[k]?'on':'off'); }
+  });
+}
+
 // ── SIMULATION ──
 function simIR(n){
   S[n]=true; setSensor(n,true);
-  toast({'irj':'🌿 Moviment al jardí!','ir1':'🏢 Moviment a Planta 1!','irp':'🚪 Porta oberta!','finestra':'🪟 Finestra oberta!','pirw':'🔍 Moviment a la finestra!'}[n]);
+  toast({'irj':'🌿 Moviment al jardí!','ir1':'🏢 Moviment a Planta 1!','irp':'🚪 Porta oberta!','pirw':'🔍 Moviment a la finestra!'}[n]);
   if(S.mode>=1) startPreAlarm();
+  if(simCodes[n]) fbWrite('/alarma/sim_event', simCodes[n]);
   setTimeout(()=>{ S[n]=false; setSensor(n,false); },5000);
 }
 function simGas(){
@@ -821,6 +883,7 @@ function simGas(){
   const v=document.getElementById('v-gas'); v.style.color='var(--red)'; v.textContent='ALERTA';
   document.getElementById('c-gas').style.background='#FFF8F8';
   setBadge(3); stopPreAlarm(); toast('☁️ Gas detectat! Alarma E3');
+  fbWrite('/alarma/sim_event', 5);
 }
 function simFlood(){
   S.water=true;
@@ -829,20 +892,23 @@ function simFlood(){
   wv.className='sc-val al'; wv.textContent='AIGUA!';
   wval.textContent='Nivell: 850 (simulació)';
   setBadge(4); stopPreAlarm(); toast('🌊 Inundació detectada! Alarma E4');
+  fbWrite('/alarma/sim_event', 6);
 }
 function simPreAlarm(){
   S.irj=true; setSensor('irj',true);
   startPreAlarm(); toast('⏱️ Pre-alarma iniciada — 20s fins a E6');
+  fbWrite('/alarma/sim_event', 7);
   setTimeout(()=>{ S.irj=false; setSensor('irj',false); },3000);
 }
 function simCritical(){
   stopPreAlarm();
   ['irj','ir1','irp'].forEach(n=>{ S[n]=true; setSensor(n,true); });
   setBadge(6); toast('🚨 ALARMA CRÍTICA E6 ACTIVADA');
+  fbWrite('/alarma/sim_event', 8);
 }
 function resetAll(){
-  stopPreAlarm(); S.mode=0; S.gas=false; S.water=false; S.hum=45.2;
-  ['irj','ir1','irp','finestra','pirw'].forEach(n=>{ S[n]=false; setSensor(n,false); });
+  stopPreAlarm(); S.mode=0; S.gas=false; S.water=false; S.hum=45.2; S.doorOpen=true;
+  ['irj','ir1','irp','pirw'].forEach(n=>{ S[n]=false; setSensor(n,false); });
   const g=document.getElementById('v-gas'); g.style.color='var(--green)'; g.textContent='OK';
   document.getElementById('c-gas').style.background='';
   const h=document.getElementById('v-hum'); h.textContent='45%'; h.style.color='';
@@ -851,24 +917,27 @@ function resetAll(){
   document.getElementById('photo-card').classList.remove('show');
   document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('m0').classList.add('active');
+  updateDoorUI();
   setBadge(0); toast('✅ Reset complet del sistema');
   fbWrite('/alarma/mode_req', 0);
+  fbWrite('/alarma/sim_event', 0);
 }
 
 // ── DOOR ──
-function toggleDoor(){
-  S.doorOpen=!S.doorOpen;
+function updateDoorUI(){
   const i=document.getElementById('door-icon'),t=document.getElementById('door-title'),b=document.getElementById('door-btn');
   if(S.doorOpen){
     i.textContent='🔓'; t.textContent='Porta Oberta';
     b.textContent='🔒 Tancar Porta'; b.className='door-btn door-close';
-    toast('🔓 Porta oberta');
   } else {
     i.textContent='🔐'; t.textContent='Porta Tancada';
     b.textContent='🔓 Obrir Porta'; b.className='door-btn door-open';
-    toast('🔒 Porta tancada');
   }
-  // Enviar comanda al servo de l'ESP32 via Firebase
+}
+function toggleDoor(){
+  S.doorOpen=!S.doorOpen;
+  updateDoorUI();
+  toast(S.doorOpen ? '🔓 Porta oberta' : '🔒 Porta tancada');
   fbWrite('/alarma/porta_req', S.doorOpen ? 1 : 0);
 }
 
