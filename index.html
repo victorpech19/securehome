@@ -351,6 +351,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="foto-req-btn" id="rafaga-btn" onclick="requestRafaga()">
         💨 Ràfega ×5
       </button>
+      <button class="foto-req-btn" id="flash-btn" onclick="toggleFlash()" style="flex:0 0 auto;padding:9px 14px">
+        ⚡ Flash: <span id="flash-state">ON</span>
+      </button>
     </div>
   </div>
 
@@ -568,6 +571,12 @@ function initFirebase() {
   db.ref('alarma/foto_intrusio_url').on('value', snap => {
     const url = snap.val();
     if (url && url.startsWith('http')) showPhoto(url);
+  });
+
+  // ── ESCOLTA: estat del flash ──
+  db.ref('alarma/flash_activat').on('value', snap => {
+    const val = snap.val();
+    if (val !== null) { flashOn = val; updateFlashBtn(); }
   });
 
   // ── ESCOLTA: galeria de fotos ──
@@ -822,6 +831,27 @@ function requestRafaga(){
   } else {
     toast('⚡ Ràfega només disponible amb ESP32 connectat');
   }
+}
+
+// ── FLASH TOGGLE ──
+let flashOn = true;
+
+function toggleFlash() {
+  flashOn = !flashOn;
+  updateFlashBtn();
+  if (FIREBASE_ENABLED && db) {
+    fbWrite('/alarma/flash_activat', flashOn);
+    toast(flashOn ? '⚡ Flash activat' : '🌑 Flash desactivat');
+  }
+}
+
+function updateFlashBtn() {
+  const btn   = document.getElementById('flash-btn');
+  const label = document.getElementById('flash-state');
+  if (!btn || !label) return;
+  label.textContent = flashOn ? 'ON' : 'OFF';
+  btn.style.borderColor  = flashOn ? 'var(--yellow)' : 'var(--border)';
+  btn.style.color        = flashOn ? 'var(--yellow)'  : 'var(--text2)';
 }
 
 // ── SENSORS ──
